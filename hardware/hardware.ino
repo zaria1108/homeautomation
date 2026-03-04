@@ -8,7 +8,7 @@
 // IMPORT ALL REQUIRED LIBRARIES
 #include <rom/rtc.h>
 
-
+#include <pgmspace.h>
 
 //IMPORT IMAGES
 #include "lockclose.h"
@@ -41,10 +41,10 @@
 
 // DEFINE VARIABLES
 
-#define potentiometer     14
-#define BTN_1     25
-#define BTN_2     26
-#define BTN_3     27
+#define potentiometer     34
+#define BTN_1     32
+#define BTN_2     25
+#define BTN_3     33
 #define TFT_DC    17
 #define TFT_CS    5
 #define TFT_RST   16
@@ -115,7 +115,7 @@ void showLockState(void);
 uint8_t currentDigit = 1; 
 uint8_t digit1V = 0, digit2V = 0, digit3V = 0, digit4V = 0;
 
-bool isLocked = false; 
+bool isLocked = true;
 uint8_t passcode = 1;
 
 uint16_t potValue = 0;
@@ -155,32 +155,23 @@ void loop() {
       Serial.println(potValue);
     // Assign the mapped value to the currently selected digit
     switch (currentDigit) {
-        case 1:
-            digit1(mappedValue);
-            digit1V=mappedValue;
-            break;
-        case 2:
-            digit2(mappedValue);
-            digit2V=mappedValue;
-            break;
-        case 3:
-            digit3(mappedValue);
-            digit3V=mappedValue;
-            break;
-        case 4:
-            digit4(mappedValue);
-            digit4V=mappedValue;
-            break;
-        default:
-            break;
+      case 1:
+          digit1V=mappedValue;
+          break;
+      case 2:
+          digit2V=mappedValue;
+          break;
+      case 3:
+          digit3V=mappedValue;
+          break;
+      case 4:
+          digit4V=mappedValue;
+          break;
     }
- 
 
-  vTaskDelay(1000 / portTICK_PERIOD_MS); 
+    showLockState();
 
- 
-
-  vTaskDelay(1000 / portTICK_PERIOD_MS);  
+  vTaskDelay(1000 / portTICK_PERIOD_MS);   
 }
 
 
@@ -199,7 +190,7 @@ void vButtonCheck( void * pvParameters )  {
         // 1. Implement button1  functionality
         if (digitalRead(BTN_1) == 0){
           /* code */
-          currentDigit++;
+          Serial.print(currentDigit++);
           if (currentDigit > 4)
           {
             currentDigit = 1;
@@ -214,8 +205,8 @@ void vButtonCheck( void * pvParameters )  {
         // 3. Implement button3  functionality
         if (digitalRead(BTN_3) == 0)
         {
-          lockState = false;
-          showLockState();
+          isLocked = true;
+          digit1V = 0, digit2V = 0, digit3V = 0, digit4V = 0;
         }
        
         vTaskDelay(200 / portTICK_PERIOD_MS);  
@@ -256,7 +247,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
  
   // CONVERT MESSAGE TO JSON
-  JsonDocument<1200> doc;
+  StaticJsonDocument<1200> doc;
   DeserializationError error = deserializeJson(doc, received);
 
   if (error) {
@@ -301,7 +292,8 @@ void digit1(uint8_t number){
   int rectWidth = 50; // Width of the rectangle
   int rectHeight = 50; // Height of the rectangle
   int cornerRadius = 5; // Radius of the rounded corners
-  int fillColor = ILI9341_RED; // Color of the filled rectangle
+  int fillColor = tft.color565(255, 105, 180); // Color of the filled rectangle (bright pink)
+  //int fillColor = tft.color565(255, 182, 193);  // Color of filled rectangle (medium pink)
 
   tft.fillRoundRect(5, 260, 50, 50, 5, ILI9341_LIGHTGREY);
   // 3. Set cursor to the appropriate coordinates in order to write the number in the middle of the box 
@@ -374,14 +366,14 @@ void checkPasscode(void){
     if(WiFi.status()== WL_CONNECTED){ 
       
       // 1. REPLACE LOCALHOST IN THE STRING BELOW WITH THE IP ADDRESS OF THE COMPUTER THAT YOUR BACKEND IS RUNNING ON
-      http.begin(client, "http://localhost:8080/api/check/combination"); // Your Domain name with URL path or IP address with path 
+      http.begin(client, "http://10.22.18.81:8080/api/check/combination"); // Your Domain name with URL path or IP address with path 
  
       
       http.addHeader("Content-Type", "application/x-www-form-urlencoded"); // Specify content-type header      
       char message[20];  // Store the 4 digit passcode that will be sent to the backend for validation via HTTP POST
       
       // 2. Insert all four (4) digits of the passcode into a string with 'passcode=1234' format and then save this modified string in the message[20] variable created above 
-       sprintf(message, "passcode=%d%d%d%d", digit1, digit2, digit3, digit4); 
+       sprintf(message, "passcode=%d%d%d%d", digit1V, digit2V, digit3V, digit4V); 
         
        
       int httpResponseCode = http.POST(message);  // Send HTTP POST request and then wait for a response
@@ -392,7 +384,7 @@ void checkPasscode(void){
         String received = http.getString();
        
        // 3. CONVERT 'received' TO JSON. 
-        JsonDocument<1200> doc;
+        StaticJsonDocument<1200> doc;
         DeserializationError error = deserializeJson(doc, received);
         if (error) {
           Serial.print("deserializeJson() failed: ");
@@ -404,11 +396,9 @@ void checkPasscode(void){
         // (1) if the status is complete, set the lockState variable to true, then invoke the showLockState function
         // (2) otherwise, set the lockState variable to false, then invoke the showLockState function
         if (doc["status"] == "complete") {
-          isLocked = true;
-          showLockState();
-        } else {
           isLocked = false;
-          showLockState();
+        } else {
+          isLocked = true;
         }    
       }     
         
@@ -424,29 +414,29 @@ void checkPasscode(void){
 void showLockState(void){
   
     // Toggles the open and close lock images on the screen based on the lockState variable  
-    tft.setFont(&FreeSansBold9pt7b);  
+    tft.setFont(&FreeSansBold9pt7b); 
+    tft.fillRect(50, 187, 240, 28,  ILI9341_WHITE); 
     tft.setTextSize(1);
     
 
-    if(lockState == true){
-      tft.drawRGBBitmap(68,10, lockopen, 104, 97); 
+    if(isLocked == false){
+      tft.drawRGBBitmap(68,10, lockopen, 104, 103); 
       tft.setCursor(50, 200);  
-      tft.setTextColor(ILI9341_WHITE); 
-      tft.printf("Access Denied"); 
-      tft.setCursor(50, 200);  
-      tft.setTextColor(ILI9341_GREEN); 
+      tft.setTextColor(ILI9341_GREEN, ILI9341_WHITE); 
       tft.printf("Access Granted");
       
     }
     else {
       tft.drawRGBBitmap(68,10, lockclose, 104, 103); 
       tft.setCursor(50, 200);  
-      tft.setTextColor(ILI9341_WHITE); 
-      tft.printf("Access Granted"); 
-      tft.setCursor(50, 200);  
-      tft.setTextColor(ILI9341_RED); 
+      tft.setTextColor(ILI9341_RED, ILI9341_WHITE); 
       tft.printf("Access Denied"); 
     }
+
+    digit1(digit1V);
+    digit2(digit2V);
+    digit3(digit3V);
+    digit4(digit4V);
     
 }
  
