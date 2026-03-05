@@ -124,13 +124,13 @@ export const useMqttStore =  defineStore('mqtt', ()=>{
         console.log(`MQTT: Failed to unsubscribe from - ${topic} \nError message : ${response.errorMessage}`);  
         }
 
-    const unsubcribe = (topic) => {     
+    const unsubscribe = (topic) => {     
         // Unsubscribe for messages, stop receiving messages sent to destinations described by the filter.      
         var unsubscribeOptions	 = { onSuccess: unSub_onSuccess, onFailure: unSub_onFailure, invocationContext:{"topic":topic} }
         mqtt.value.unsubscribe(topic, unsubscribeOptions);         
         }
     
-    const unsubcribeAll = () => {   
+    const unsubscribeAll = () => {   
         // Unsubscribe for messages, stop receiving messages sent to destinations described by the filter.      
         const topics = Object.keys(subTopics.value);
         if(topics.length > 0) {
@@ -175,8 +175,8 @@ export const useMqttStore =  defineStore('mqtt', ()=>{
         payload,
         payloadTopic,
         subscribe,
-        unsubcribe,
-        unsubcribeAll,
+        unsubscribe,
+        unsubscribeAll,
         publish,
         connect,
         disconnect,

@@ -26,7 +26,7 @@
 #define espTimeout_ms 300
 
 #define TRIG 4  // Trigger pin
-#define ECHO    5 // Echo pin
+#define ECHO    3 // Echo pin
 #define max 77.763 // Maximum water level/height from the base of the tank
 #define cap  1000 // Maximum capacity of the tank in US Gallons
 #define tankHeight 94.5 // Ultrasonic sensor height from the base of the tank

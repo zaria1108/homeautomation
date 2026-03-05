@@ -49,7 +49,7 @@ export default defineConfig({
     host:true, 
     proxy: {
       '^/api*': { 
-        target: 'http://10.22.18.81:8080/' ,
+        target: 'http://172.16.192.4:8080/' ,
        changeOrigin: false,
     },   
   }

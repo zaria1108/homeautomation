@@ -262,7 +262,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-    Mqtt.unsubcribeAll();
+    Mqtt.unsubscribeAll();
 });
 </script>
 
